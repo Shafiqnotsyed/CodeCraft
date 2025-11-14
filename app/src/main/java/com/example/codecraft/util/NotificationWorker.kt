@@ -44,7 +44,7 @@ class NotificationWorker(appContext: Context, workerParams: WorkerParameters) :
 
 
         val builder = NotificationCompat.Builder(applicationContext, "codecraft_channel")
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_launcher_playstore)
             .setContentTitle("CodeCraft")
             .setContentText("The craft is waiting for you!")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
