@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.codecraft.data.ai.AiProvider
 import com.example.codecraft.data.db.ChatMessage
 import com.example.codecraft.data.db.ChatMessageDao
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -20,8 +22,11 @@ class AiChatViewModel(
     private val provider: AiProvider
 ) : ViewModel() {
 
+    private val auth = Firebase.auth
+    private val userId = auth.currentUser?.uid ?: ""
+
     // Only expose the last MAX_MESSAGES messages to the UI
-    val history = chatMessageDao.getAllMessages()
+    val history = chatMessageDao.getAllMessages(userId)
         .map { messages ->
             if (messages.size <= MAX_MESSAGES) messages
             else messages.takeLast(MAX_MESSAGES)
@@ -44,7 +49,7 @@ class AiChatViewModel(
             _isLoading.value = true
             try {
                 // 1. Save the user's message
-                val userMessage = ChatMessage(role = "user", text = question)
+                val userMessage = ChatMessage(userId = userId, role = "user", text = question)
                 chatMessageDao.insertMessage(userMessage)
 
                 // 2. Call the AI for an answer
@@ -53,7 +58,7 @@ class AiChatViewModel(
                     ?: "The AI is currently busy. Please wait a few seconds and try again."
 
                 // 3. Save the AI's response
-                val aiMessage = ChatMessage(role = "model", text = aiResponse)
+                val aiMessage = ChatMessage(userId = userId, role = "model", text = aiResponse)
                 chatMessageDao.insertMessage(aiMessage)
 
 
