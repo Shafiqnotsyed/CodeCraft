@@ -7,21 +7,57 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Forum
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayCircleOutline
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -34,9 +70,7 @@ import kotlinx.coroutines.delay
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
-    userProgress: UserProgress,
-    courses: List<Course>,
-    learningProgress: Float,
+    uiState: DashboardUiState,
     onCourseSelected: (Course) -> Unit,
     onSignOut: () -> Unit,
     onChangeCourses: () -> Unit,
@@ -78,7 +112,7 @@ fun DashboardScreen(
                             onClick = { onMyProfile(); showMenu = false }
                         )
                         DropdownMenuItem(
-                            leadingIcon = { Icon(Icons.Default.List, "All Tests") },
+                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.List, "All Tests") },
                             text = { Text("All Tests") },
                             onClick = { onAllTests(); showMenu = false }
                         )
@@ -92,9 +126,9 @@ fun DashboardScreen(
                             text = { Text("Ask Craft") },
                             onClick = { onAskAi(); showMenu = false }
                         )
-                        Divider()
+                        HorizontalDivider()
                         DropdownMenuItem(
-                            leadingIcon = { Icon(Icons.Default.Logout, "Sign out") },
+                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.Logout, "Sign out") },
                             text = { Text("Sign out") },
                             onClick = { onSignOut(); showMenu = false }
                         )
@@ -103,37 +137,39 @@ fun DashboardScreen(
             )
         }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            item { Spacer(modifier = Modifier.height(16.dp)) }
-            item { GreetingSection(isVisible = isVisible) }
-            item { Spacer(modifier = Modifier.height(24.dp)) }
-            item { LearningProgress(learningProgress, userProgress.currentCourse, isVisible = isVisible) }
-            item { Spacer(modifier = Modifier.height(24.dp)) }
-            item { CoursesSection(courses, userProgress.currentCourse, onCourseSelected, isVisible = isVisible) }
-            item { Spacer(modifier = Modifier.height(24.dp)) }
-            item {
-                ExercisesSection(
-                    isVisible = isVisible,
-                    selectedLanguages = userProgress.selectedLanguages,
-                    onPythonExercise = onPythonExercise,
-                    onJavaExercise = onJavaExercise,
-                    onHtmlExercise = onHtmlExercise
-                )
+        uiState.userProgress?.let { userProgress ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                item { Spacer(modifier = Modifier.height(16.dp)) }
+                item { GreetingSection(isVisible = isVisible, name = uiState.userName) }
+                item { Spacer(modifier = Modifier.height(24.dp)) }
+                item { LearningProgress(uiState.learningProgress, userProgress.currentCourse, isVisible = isVisible) }
+                item { Spacer(modifier = Modifier.height(24.dp)) }
+                item { CoursesSection(uiState.courses, userProgress.currentCourse, onCourseSelected, isVisible = isVisible) }
+                item { Spacer(modifier = Modifier.height(24.dp)) }
+                item {
+                    ExercisesSection(
+                        isVisible = isVisible,
+                        selectedLanguages = userProgress.selectedLanguages,
+                        onPythonExercise = onPythonExercise,
+                        onJavaExercise = onJavaExercise,
+                        onHtmlExercise = onHtmlExercise
+                    )
+                }
+                item { Spacer(modifier = Modifier.height(24.dp)) }
+                item { TestsList(userProgress, isVisible = isVisible, onStartTest = onAllTests) }
             }
-            item { Spacer(modifier = Modifier.height(24.dp)) }
-            item { TestsList(userProgress, isVisible = isVisible, onStartTest = onAllTests) }
         }
     }
 }
 
 @Composable
-fun GreetingSection(isVisible: Boolean) {
+fun GreetingSection(isVisible: Boolean, name: String) {
     AnimatedVisibility(
         visible = isVisible,
         enter = slideInVertically(
@@ -143,7 +179,7 @@ fun GreetingSection(isVisible: Boolean) {
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = "Welcome back!",
+                text = if (name.isNotBlank()) "Welcome back, $name" else "Welcome back!",
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
@@ -300,6 +336,10 @@ fun CourseCard(course: Course, isSelected: Boolean, onCourseSelected: () -> Unit
 
     Box(
         modifier = Modifier
+            .graphicsLayer {
+                scaleX = animatedScale
+                scaleY = animatedScale
+            }
             .size(160.dp)
             .clip(RoundedCornerShape(24.dp))
             .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)))
