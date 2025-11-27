@@ -3,6 +3,7 @@ package com.example.codecraft
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
 import com.example.codecraft.auth.LoginActivity
 import com.example.codecraft.dashboard.DashboardActivity
@@ -19,6 +20,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
 
         userPreferencesRepository = (application as CodeCraftApplication).container.userPreferencesRepository
         val auth = Firebase.auth

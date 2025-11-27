@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupProperties
 import com.example.codecraft.ai.AiChatViewModel
 import com.example.codecraft.data.db.ChatMessage
 import kotlinx.coroutines.launch
@@ -27,10 +28,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun AiChatScreen(viewModel: AiChatViewModel) {
     val history by viewModel.history.collectAsState()
-    var question by remember { mutableStateOf("") }
     val languages = listOf("Python", "Java", "HTML", "General")
     var selectedLanguage by remember { mutableStateOf(languages[0]) }
-    var isMenuExpanded by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
@@ -43,6 +42,7 @@ fun AiChatScreen(viewModel: AiChatViewModel) {
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             TopAppBar(
                 title = { Text("Ask Craft", fontWeight = FontWeight.Bold) },
@@ -53,9 +53,7 @@ fun AiChatScreen(viewModel: AiChatViewModel) {
             )
         },
         bottomBar = {
-            BottomInputBar(viewModel, selectedLanguage, onLanguageSelected = { selectedLanguage = it }) {
-                question = ""
-            }
+            BottomInputBar(viewModel, selectedLanguage, onLanguageSelected = { selectedLanguage = it })
         }
     ) { paddingValues ->
         val backgroundBrush = Brush.verticalGradient(
@@ -71,6 +69,7 @@ fun AiChatScreen(viewModel: AiChatViewModel) {
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
+                    .consumeWindowInsets(paddingValues)
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(vertical = 16.dp)
@@ -87,13 +86,15 @@ fun AiChatScreen(viewModel: AiChatViewModel) {
 fun BottomInputBar(
     viewModel: AiChatViewModel,
     selectedLanguage: String,
-    onLanguageSelected: (String) -> Unit,
-    onMessageSent: () -> Unit
+    onLanguageSelected: (String) -> Unit
 ) {
     var question by remember { mutableStateOf("") }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding() // Pushes the card above the system navigation bar
+            .imePadding(),           // Pushes the card above the keyboard
         elevation = CardDefaults.cardElevation(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
@@ -121,7 +122,6 @@ fun BottomInputBar(
                 onClick = {
                     if (question.isNotBlank()) {
                         viewModel.sendMessage(selectedLanguage, question)
-                        onMessageSent()
                         question = ""
                     }
                 },
@@ -149,7 +149,8 @@ fun LanguageSelector(selectedLanguage: String, onLanguageSelected: (String) -> U
         }
         DropdownMenu(
             expanded = isMenuExpanded,
-            onDismissRequest = { isMenuExpanded = false }
+            onDismissRequest = { isMenuExpanded = false },
+            properties = PopupProperties(focusable = true, dismissOnBackPress = true, dismissOnClickOutside = true)
         ) {
             languages.forEach { lang ->
                 DropdownMenuItem(
